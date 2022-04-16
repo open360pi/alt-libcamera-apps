@@ -59,7 +59,7 @@ void FileOutput::openFile(int64_t timestamp_us)
 
 		fp_ = fopen(filename, "w");
 		if (!fp_)
-			throw std::runtime_error("failed to open output file " + std::string(filename));
+			throw std::runtime_error("failed to open output file 2 " + std::string(filename));
 		if (options_->verbose)
 			std::cerr << "FileOutput: opened output file " << filename << std::endl;
 

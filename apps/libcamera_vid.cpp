@@ -52,7 +52,7 @@ static int get_key_or_signal(VideoOptions const *options, pollfd p[1])
 
 static int get_colourspace_flags(std::string const &codec)
 {
-	if (codec == "mjpeg" || codec == "yuv420")
+	if (codec == "jpeg" || codec == "mjpeg" || codec == "yuv420")
 		return LibcameraEncoder::FLAG_VIDEO_JPEG_COLOURSPACE;
 	else
 		return LibcameraEncoder::FLAG_VIDEO_NONE;
@@ -77,6 +77,8 @@ static void event_loop(LibcameraEncoder &app)
 	signal(SIGUSR2, default_signal_handler);
 	pollfd p[1] = { { STDIN_FILENO, POLLIN, 0 } };
 
+	bool enabled = false;
+
 	for (unsigned int count = 0; ; count++)
 	{
 		LibcameraEncoder::Msg msg = app.Wait();
@@ -85,8 +87,10 @@ static void event_loop(LibcameraEncoder &app)
 		else if (msg.type != LibcameraEncoder::MsgType::RequestComplete)
 			throw std::runtime_error("unrecognised message!");
 		int key = get_key_or_signal(options, p);
-		if (key == '\n')
-			output->Signal();
+		if (key == '\n') {
+			enabled = true;
+			//output->Signal();
+		}
 
 		if (options->verbose)
 			std::cerr << "Viewfinder frame " << count << std::endl;
@@ -104,8 +108,11 @@ static void event_loop(LibcameraEncoder &app)
 		}
 
 		CompletedRequestPtr &completed_request = std::get<CompletedRequestPtr>(msg.payload);
-		app.EncodeBuffer(completed_request, app.VideoStream());
-		app.ShowPreview(completed_request, app.VideoStream());
+		if (enabled) {
+			app.EncodeBuffer(completed_request, app.VideoStream());
+			app.ShowPreview(completed_request, app.VideoStream());
+			enabled = false;
+		}
 	}
 }
 

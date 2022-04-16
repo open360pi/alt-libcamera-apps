@@ -10,6 +10,7 @@
 #include "encoder.hpp"
 #include "h264_encoder.hpp"
 #include "mjpeg_encoder.hpp"
+#include "jpeg_encoder.hpp"
 #include "null_encoder.hpp"
 
 Encoder *Encoder::Create(VideoOptions const *options, const StreamInfo &info)
@@ -20,5 +21,7 @@ Encoder *Encoder::Create(VideoOptions const *options, const StreamInfo &info)
 		return new H264Encoder(options, info);
 	else if (strcasecmp(options->codec.c_str(), "mjpeg") == 0)
 		return new MjpegEncoder(options);
-	throw std::runtime_error("Unrecognised codec " + options->codec);
+	else if (strcasecmp(options->codec.c_str(), "jpeg") == 0)
+		return new JpegEncoder(options);
+	throw std::runtime_error("Unrecognise1d codec " + options->codec);
 }

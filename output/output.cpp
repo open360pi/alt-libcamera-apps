@@ -11,6 +11,7 @@
 #include "circular_output.hpp"
 #include "file_output.hpp"
 #include "net_output.hpp"
+#include "image_output.hpp"
 #include "output.hpp"
 
 Output::Output(VideoOptions const *options)
@@ -45,7 +46,10 @@ void Output::OutputReady(void *mem, size_t size, int64_t timestamp_us, bool keyf
 	if (!enable_)
 		state_ = DISABLED;
 	else if (state_ == DISABLED)
+	{
 		state_ = WAITING_KEYFRAME;
+		enable_ = false;
+	}
 	if (state_ == WAITING_KEYFRAME && keyframe)
 		state_ = RUNNING, flags |= FLAG_RESTART;
 	if (state_ != RUNNING)
@@ -72,10 +76,12 @@ Output *Output::Create(VideoOptions const *options)
 {
 	if (strncmp(options->output.c_str(), "udp://", 6) == 0 || strncmp(options->output.c_str(), "tcp://", 6) == 0)
 		return new NetOutput(options);
+	else if (strncmp(options->output.c_str(), "jpg://", 6) == 0)
+		return new ImageOutput(options);
 	else if (options->circular)
 		return new CircularOutput(options);
 	else if (!options->output.empty())
-		return new FileOutput(options);
+		return new ImageOutput(options);
 	else
 		return new Output(options);
 }

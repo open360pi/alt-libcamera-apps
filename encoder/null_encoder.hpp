@@ -20,7 +20,7 @@ class NullEncoder : public Encoder
 public:
 	NullEncoder(VideoOptions const *options);
 	~NullEncoder();
-	void EncodeBuffer(int fd, size_t size, void *mem, StreamInfo const &info, int64_t timestamp_us) override;
+	void EncodeBuffer(int fd, size_t size, void *mem, StreamInfo const &info, libcamera::ControlList const &metadata, int64_t timestamp_us) override;
 
 private:
 	void outputThread();

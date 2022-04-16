@@ -39,7 +39,7 @@ MjpegEncoder::~MjpegEncoder()
 		std::cerr << "MjpegEncoder closed" << std::endl;
 }
 
-void MjpegEncoder::EncodeBuffer(int fd, size_t size, void *mem, StreamInfo const &info, int64_t timestamp_us)
+void MjpegEncoder::EncodeBuffer(int fd, size_t size, void *mem, StreamInfo const &info, libcamera::ControlList const &metadata, int64_t timestamp_us)
 {
 	std::lock_guard<std::mutex> lock(encode_mutex_);
 	EncodeItem item = { mem, info, timestamp_us, index_++ };

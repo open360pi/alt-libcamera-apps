@@ -16,13 +16,13 @@
 
 struct jpeg_compress_struct;
 
-class MjpegEncoder : public Encoder
+class JpegEncoder : public Encoder
 {
 public:
-	MjpegEncoder(VideoOptions const *options);
-	~MjpegEncoder();
+	JpegEncoder(VideoOptions const *options);
+	~JpegEncoder();
 	// Encode the given buffer.
-	void EncodeBuffer(int fd, size_t size, void *mem, StreamInfo const &info, libcamera::ControlList const &metadata, int64_t timestamp_us) override;
+	void EncodeBuffer(int fd, size_t size, void *mem, StreamInfo const &info, libcamera::ControlList const &metadata,  int64_t timestamp_us) override;
 
 private:
 	// How many threads to use. Whichever thread is idle will pick up the next frame.
@@ -44,6 +44,7 @@ private:
 	{
 		void *mem;
 		StreamInfo info;
+		libcamera::ControlList metadata;
 		int64_t timestamp_us;
 		uint64_t index;
 	};

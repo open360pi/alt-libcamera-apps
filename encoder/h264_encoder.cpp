@@ -237,7 +237,7 @@ H264Encoder::~H264Encoder()
 		std::cerr << "H264Encoder closed" << std::endl;
 }
 
-void H264Encoder::EncodeBuffer(int fd, size_t size, void *mem, StreamInfo const &info, int64_t timestamp_us)
+void H264Encoder::EncodeBuffer(int fd, size_t size, void *mem, StreamInfo const &info, libcamera::ControlList const &metadata, int64_t timestamp_us)
 {
 	int index;
 	{

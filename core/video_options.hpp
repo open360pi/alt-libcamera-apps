@@ -37,7 +37,7 @@ struct VideoOptions : public Options
 			("save-pts", value<std::string>(&save_pts),
 			 "Save a timestamp file with this name")
 			("quality,q", value<int>(&quality)->default_value(50),
-			 "Set the MJPEG quality parameter (mjpeg only)")
+			 "Set the JPEG & MJPEG quality parameter (jpeg or mjpeg only)")
 			("listen,l", value<bool>(&listen)->default_value(false)->implicit_value(true),
 			 "Listen for an incoming client network connection before sending data to the client")
 			("keypress,k", value<bool>(&keypress)->default_value(false)->implicit_value(true),
@@ -54,6 +54,8 @@ struct VideoOptions : public Options
 			 "Write output to a circular buffer of the given size (in MB) which is saved on exit")
 			("frames", value<unsigned int>(&frames)->default_value(0),
 			 "Run for the exact number of frames specified. This will override any timeout set.")
+			("gpio", value<unsigned int>(&gpio)->default_value(1),
+			 "GPIO synchronization type.")
 			;
 		// clang-format on
 	}
@@ -75,6 +77,7 @@ struct VideoOptions : public Options
 	uint32_t segment;
 	size_t circular;
 	uint32_t frames;
+	uint32_t gpio;
 
 	virtual bool Parse(int argc, char *argv[]) override
 	{
@@ -91,6 +94,8 @@ struct VideoOptions : public Options
 			codec = "yuv420";
 		else if (strcasecmp(codec.c_str(), "mjpeg") == 0)
 			codec = "mjpeg";
+		else if (strcasecmp(codec.c_str(), "jpeg") == 0)
+			codec = "jpeg";
 		else
 			throw std::runtime_error("unrecognised codec " + codec);
 		if (strcasecmp(initial.c_str(), "pause") == 0)
@@ -116,12 +121,13 @@ struct VideoOptions : public Options
 		std::cerr << "    inline: " << inline_headers << std::endl;
 		std::cerr << "    save-pts: " << save_pts << std::endl;
 		std::cerr << "    codec: " << codec << std::endl;
-		std::cerr << "    quality (for MJPEG): " << quality << std::endl;
+		std::cerr << "    quality (for MJPEG or JPEG): " << quality << std::endl;
 		std::cerr << "    keypress: " << keypress << std::endl;
 		std::cerr << "    signal: " << signal << std::endl;
 		std::cerr << "    initial: " << initial << std::endl;
 		std::cerr << "    split: " << split << std::endl;
 		std::cerr << "    segment: " << segment << std::endl;
 		std::cerr << "    circular: " << circular << std::endl;
+		std::cerr << "    gpio: " << gpio << std::endl;
 	}
 };
