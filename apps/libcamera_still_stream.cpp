@@ -10,11 +10,29 @@
 #include <signal.h>
 #include <sys/signalfd.h>
 #include <sys/stat.h>
+#include <pigpio.h>
 
 #include "core/libcamera_encoder.hpp"
 #include "output/output.hpp"
 
 using namespace std::placeholders;
+
+#define GPIO_TRIGGER_INDEX 20
+pthread_mutex_t lock;
+pthread_mutexattr_t attr;
+
+void gpioMutexHandler(int gpio, int level, uint32_t tick)
+{
+   printf("Interrupt level %d at %u\n", level, tick);
+   pthread_mutex_unlock(&lock);
+}
+
+static int gpio_received;
+void gpioHandler(int gpio, int level, uint32_t tick)
+{
+   printf("Interrupt level %d at %u\n", level, tick);
+   gpio_received = gpio;
+}
 
 // Some keypress/signal handling.
 
@@ -47,12 +65,18 @@ static int get_key_or_signal(VideoOptions const *options, pollfd p[1])
 			key = 'x';
 		signal_received = 0;
 	}
+
+	if (gpio_received)
+	{
+		key = '\n';
+		gpio_received = 0;
+	}
 	return key;
 }
 
 static int get_colourspace_flags(std::string const &codec)
 {
-	if (codec == "mjpeg" || codec == "yuv420")
+	if (codec == "jpeg" || codec == "mjpeg" || codec == "yuv420")
 		return LibcameraEncoder::FLAG_VIDEO_JPEG_COLOURSPACE;
 	else
 		return LibcameraEncoder::FLAG_VIDEO_NONE;
@@ -69,6 +93,45 @@ static void event_loop(LibcameraEncoder &app)
 	app.OpenCamera();
 	app.ConfigureVideo(get_colourspace_flags(options->codec));
 	app.StartEncoder();
+
+	// Intended for GPIO firing of a capture
+	if(options->gpio == 0 || options->gpio == 3) {
+		pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_NORMAL);
+		pthread_mutex_init(&lock, &attr);
+		gpioInitialise();
+		pthread_mutex_lock(&lock);
+
+		gpioSetMode(GPIO_TRIGGER_INDEX, PI_INPUT);
+		gpioSetPullUpDown(GPIO_TRIGGER_INDEX, PI_PUD_UP);
+		gpioSetISRFunc(GPIO_TRIGGER_INDEX, RISING_EDGE, 0, gpioMutexHandler);
+
+		if (options->verbose)
+			fprintf(stderr, "Waiting GPIO signal from master\n");
+		pthread_mutex_lock(&lock);
+		pthread_mutex_destroy(&lock);
+
+		gpioSleep(PI_TIME_RELATIVE, 0, 100000);
+	}
+	else {
+		gpioInitialise();
+		if (options->verbose)
+			fprintf(stderr, "Sending GPIO signal to slave\n");
+		gpioSetMode(GPIO_TRIGGER_INDEX, PI_OUTPUT);
+		gpioWrite(GPIO_TRIGGER_INDEX, 0);
+		gpioSleep(PI_TIME_RELATIVE, 0, 10000);
+		gpioWrite(GPIO_TRIGGER_INDEX, 1);
+		gpioSleep(PI_TIME_RELATIVE, 0, 10000);
+		gpioWrite(GPIO_TRIGGER_INDEX, 0);
+		gpioSetMode(GPIO_TRIGGER_INDEX, PI_INPUT);
+		gpioTerminate();
+	}
+
+	if (options->gpio == 3) {
+		if (options->verbose)
+			fprintf(stderr, "Sleeping a bit\n");
+		sleep(0.030);
+	}
+
 	app.StartCamera();
 	auto start_time = std::chrono::high_resolution_clock::now();
 
@@ -76,6 +139,13 @@ static void event_loop(LibcameraEncoder &app)
 	signal(SIGUSR1, default_signal_handler);
 	signal(SIGUSR2, default_signal_handler);
 	pollfd p[1] = { { STDIN_FILENO, POLLIN, 0 } };
+
+	bool enabled = false;
+
+	gpioInitialise();
+	gpioSetMode(GPIO_TRIGGER_INDEX, PI_INPUT);
+	gpioSetPullUpDown(GPIO_TRIGGER_INDEX, PI_PUD_UP);
+	gpioSetISRFunc(GPIO_TRIGGER_INDEX, RISING_EDGE, 0, gpioHandler);
 
 	for (unsigned int count = 0; ; count++)
 	{
@@ -85,8 +155,9 @@ static void event_loop(LibcameraEncoder &app)
 		else if (msg.type != LibcameraEncoder::MsgType::RequestComplete)
 			throw std::runtime_error("unrecognised message!");
 		int key = get_key_or_signal(options, p);
-		if (key == '\n')
-			output->Signal();
+		if (key == '\n') {
+			enabled = true;
+		}
 
 		if (options->verbose)
 			std::cerr << "Viewfinder frame " << count << std::endl;
@@ -104,8 +175,13 @@ static void event_loop(LibcameraEncoder &app)
 		}
 
 		CompletedRequestPtr &completed_request = std::get<CompletedRequestPtr>(msg.payload);
-		app.EncodeBuffer(completed_request, app.VideoStream());
-		app.ShowPreview(completed_request, app.VideoStream());
+		if (enabled) {
+			app.EncodeBuffer(completed_request, app.VideoStream());
+			app.ShowPreview(completed_request, app.VideoStream());
+			enabled = false;
+			if (options->verbose)
+				std::cerr << "Viewfinder frame " << count << std::endl;
+		}
 	}
 }
 

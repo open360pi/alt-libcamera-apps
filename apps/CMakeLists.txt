@@ -8,6 +8,10 @@ project(libcamera-vid)
 add_executable(libcamera-vid libcamera_vid.cpp)
 target_link_libraries(libcamera-vid libcamera_app encoders outputs)
 
+project(libcamera-still-stream)
+add_executable(libcamera-still-stream libcamera_still_stream.cpp)
+target_link_libraries(libcamera-still-stream libcamera_app encoders outputs pigpio)
+
 project(libcamera-hello)
 add_executable(libcamera-hello libcamera_hello.cpp)
 target_link_libraries(libcamera-hello libcamera_app)
