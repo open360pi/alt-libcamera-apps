@@ -1,0 +1,16 @@
+Source: alt-libcamera-apps
+Section: devel
+Priority: optional
+Maintainer: Monstrofil <shalal545@gmail.com>
+Build-Depends: debhelper (>= 9), gcc, cmake, make, pigpio,
+	libcamera-dev, libjpeg-dev, libtiff5-dev,
+	libboost-program-options-dev, libdrm-dev, libexif-dev
+Homepage: https://github.com/Monstrofil/alt-libcamera-apps
+
+Package: alt-libcamera-apps-lite
+Architecture: armhf
+Depends: ${misc:Depends}, ${shlibs:Depends}, pigpio,
+	libboost-program-options1.74.0, libcamera0, libdrm2,
+    libexif12, libgcc-s1, libjpeg62-turbo, libpng16-16,
+    libstdc++6, libtiff5
+Description: alt-libcamera-apps package files
