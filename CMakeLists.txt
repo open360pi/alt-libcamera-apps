@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.6)
 
 project(libcamera-apps)
 
+include(GNUInstallDirs)
 set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}")
 
 if (NOT EXISTS ${CMAKE_BINARY_DIR}/CMakeCache.txt)
