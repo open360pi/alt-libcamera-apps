@@ -15,10 +15,18 @@
 struct FrameInfo
 {
 	FrameInfo(libcamera::ControlList &ctrls)
-		: exposure_time(0.0), digital_gain(0.0), colour_gains({ { 0.0f, 0.0f } }), focus(0.0), aelock(false)
+		: color_temperature(0), frame_duration(0),
+		  exposure_time(0.0), digital_gain(0.0),
+		  colour_gains({ { 0.0f, 0.0f } }), focus(0.0), lux(0.0), aelock(false)
 	{
+		if (ctrls.contains(libcamera::controls::ColourTemperature))
+			exposure_time = ctrls.get<int32_t>(libcamera::controls::ColourTemperature);
+
 		if (ctrls.contains(libcamera::controls::ExposureTime))
 			exposure_time = ctrls.get<int32_t>(libcamera::controls::ExposureTime);
+
+		if (ctrls.contains(libcamera::controls::FrameDuration))
+			frame_duration = ctrls.get<int64_t>(libcamera::controls::FrameDuration);
 
 		if (ctrls.contains(libcamera::controls::AnalogueGain))
 			analogue_gain = ctrls.get(libcamera::controls::AnalogueGain);
@@ -34,6 +42,9 @@ struct FrameInfo
 
 		if (ctrls.contains(libcamera::controls::FocusFoM))
 			focus = ctrls.get(libcamera::controls::FocusFoM);
+
+		if (ctrls.contains(libcamera::controls::Lux))
+			lux = ctrls.get(libcamera::controls::Lux);
 
 		if (ctrls.contains(libcamera::controls::AeLocked))
 			aelock = ctrls.get(libcamera::controls::AeLocked);
@@ -57,6 +68,12 @@ struct FrameInfo
 					value << fps;
 				else if (t == "%exp")
 					value << exposure_time;
+				else if (t == "%temp")
+					value << color_temperature;
+				else if (t == "%fd")
+					value << frame_duration;
+				else if (t == "%lux")
+					value << lux;
 				else if (t == "%ag")
 					value << analogue_gain;
 				else if (t == "%dg")
@@ -78,16 +95,20 @@ struct FrameInfo
 	}
 
 	unsigned int sequence;
+	unsigned int color_temperature;
+	unsigned long frame_duration;
 	float exposure_time;
 	float analogue_gain;
 	float digital_gain;
 	std::array<float, 2> colour_gains;
 	float focus;
 	float fps;
+	float lux;
 	bool aelock;
 
 private:
 	// Info text tokens.
 	inline static const std::string tokens[] = { "%frame", "%fps", "%exp",	 "%ag",	   "%dg",
-												 "%rg",	   "%bg",  "%focus", "%aelock" };
+												 "%rg",	   "%bg",  "%focus", "%aelock", "%temp",
+												 "%fd",    "%lux" };
 };
