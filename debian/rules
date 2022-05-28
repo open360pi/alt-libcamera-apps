@@ -11,6 +11,7 @@ DEB_HOST_MULTIARCH		?= $(call vafilt,$(DPKG_VARS),DEB_HOST_MULTIARCH)
 srcname			:= alt-libcamera-apps
 name			:= $(srcname)
 buildroot		:= $(CURDIR)/debian/tmp
+cmaketmp		:= $(CURDIR)/debian/build
 _sourcedir		:= debian/source
 
 
@@ -24,11 +25,11 @@ override_dh_auto_build:
 override_dh_auto_install:
 	# Install files and directories
 	mkdir -p $(buildroot)
+	mkdir -p $(cmaketmp)
 
-	cmake $(CURDIR) -DENABLE_DRM=1 -DENABLE_X11=0 -DENABLE_QT=0 -DENABLE_OPENCV=0 -DENABLE_TFLITE=0 \
-	 -DCMAKE_INSTALL_PREFIX:PATH=/opt/alt/libcamera-apps/ \
-	 -DCMAKE_INSTALL_RPATH:PATH=/opt/alt/libcamera-apps/lib/arm-linux-gnueabihf/
-	make -j2 && make install DESTDIR=$(buildroot)/
+	pushd $(cmaketmp) && cmake $(CURDIR) -DENABLE_DRM=1 -DENABLE_X11=0 -DENABLE_QT=0 -DENABLE_OPENCV=0 -DENABLE_TFLITE=0 \
+	 -DCMAKE_INSTALL_PREFIX:PATH=/opt/alt/libcamera-apps/
+	pushd $(cmaketmp) && make -j2 && make install DESTDIR=$(buildroot)/
 
 	# ######################################################################
 	# Packaging
@@ -46,6 +47,7 @@ override_dh_auto_test:
 
 override_dh_auto_clean:
 	rm -rf $(buildroot)
+	rm -rf $(cmaketmp)
 
 override_dh_builddeb:
 	dh_builddeb
