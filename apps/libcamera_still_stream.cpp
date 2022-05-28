@@ -12,6 +12,7 @@
 #include <sys/stat.h>
 #include <pigpio.h>
 
+#include "core/frame_info.hpp"
 #include "core/libcamera_encoder.hpp"
 #include "output/output.hpp"
 
@@ -175,6 +176,12 @@ static void event_loop(LibcameraEncoder &app)
 		}
 
 		CompletedRequestPtr &completed_request = std::get<CompletedRequestPtr>(msg.payload);
+
+		FrameInfo frame_info(completed_request->metadata);
+		std::string format = "FrameInfo frame=%frame fps=%fps exposure=%exp analog_gain=%ag "
+		                     "digital_gain=%dg red_gain=%rg blue_gain=%bg focus=%focus "
+		                     "aelock=%aelock colour_temp=%temp frame_duration=%fd lux=%lux";
+		std::cerr << frame_info.ToString(format) << std::endl;
 		if (enabled) {
 			app.EncodeBuffer(completed_request, app.VideoStream());
 			app.ShowPreview(completed_request, app.VideoStream());
