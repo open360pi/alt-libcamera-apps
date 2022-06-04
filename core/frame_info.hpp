@@ -20,7 +20,7 @@ struct FrameInfo
 		  colour_gains({ { 0.0f, 0.0f } }), focus(0.0), lux(0.0), aelock(false)
 	{
 		if (ctrls.contains(libcamera::controls::ColourTemperature))
-			exposure_time = ctrls.get<int32_t>(libcamera::controls::ColourTemperature);
+			color_temperature = ctrls.get<int32_t>(libcamera::controls::ColourTemperature);
 
 		if (ctrls.contains(libcamera::controls::ExposureTime))
 			exposure_time = ctrls.get<int32_t>(libcamera::controls::ExposureTime);

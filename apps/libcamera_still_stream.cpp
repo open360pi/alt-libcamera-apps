@@ -178,6 +178,8 @@ static void event_loop(LibcameraEncoder &app)
 		CompletedRequestPtr &completed_request = std::get<CompletedRequestPtr>(msg.payload);
 
 		FrameInfo frame_info(completed_request->metadata);
+		frame_info.fps = completed_request->framerate;
+		frame_info.sequence = completed_request->sequence;
 		std::string format = "FrameInfo frame=%frame fps=%fps exposure=%exp analog_gain=%ag "
 		                     "digital_gain=%dg red_gain=%rg blue_gain=%bg focus=%focus "
 		                     "aelock=%aelock colour_temp=%temp frame_duration=%fd lux=%lux";
