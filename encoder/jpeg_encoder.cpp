@@ -264,6 +264,9 @@ void JpegEncoder::encodeThread(int num)
 	std::chrono::duration<double> encode_time(0);
 	uint32_t frames = 0;
 
+	char *output_buf = nullptr;
+	size_t output_len;
+
 	EncodeItem encode_item;
 	while (true)
 	{
@@ -310,8 +313,7 @@ void JpegEncoder::encodeThread(int num)
 		frames++;
 
 		FILE *fp;
-		char *output_buf;
-		size_t output_len;
+		output_buf = nullptr;
 
 		fp = open_memstream (&output_buf, &output_len);
 
@@ -322,6 +324,14 @@ void JpegEncoder::encodeThread(int num)
 			throw std::runtime_error("failed to write file - output probably corrupt");
 
 		fclose (fp);
+
+		free(exif_buffer);
+		exif_buffer = nullptr;
+		free(thumb_buffer);
+		thumb_buffer = nullptr;
+		free(jpeg_buffer);
+		jpeg_buffer = nullptr;
+
 		// Don't return buffers until the output thread as that's where they're
 		// in order again.
 
