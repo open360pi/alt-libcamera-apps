@@ -192,6 +192,7 @@ static void event_loop(LibcameraEncoder &app)
 				std::cerr << "Viewfinder frame " << count << std::endl;
 		}
 	}
+	gpioTerminate();
 }
 
 int main(int argc, char *argv[])
