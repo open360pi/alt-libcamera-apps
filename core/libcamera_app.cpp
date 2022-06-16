@@ -389,14 +389,13 @@ void LibcameraApp::Teardown()
 	streams_.clear();
 }
 
-void LibcameraApp::StartCamera()
+libcamera::ControlList LibcameraApp::GetControls()
 {
-	// This makes all the Request objects that we shall need.
-	makeRequests();
+	libcamera::ControlList controls;
 
 	// Build a list of initial controls that we must set in the camera before starting it.
 	// We don't overwrite anything the application may have set before calling us.
-	if (!controls_.contains(controls::ScalerCrop) && options_->roi_width != 0 && options_->roi_height != 0)
+	if (!controls.contains(controls::ScalerCrop) && options_->roi_width != 0 && options_->roi_height != 0)
 	{
 		Rectangle sensor_area = camera_->properties().get(properties::ScalerCropMaximum);
 		int x = options_->roi_x * sensor_area.width;
@@ -407,45 +406,55 @@ void LibcameraApp::StartCamera()
 		crop.translateBy(sensor_area.topLeft());
 		if (options_->verbose)
 			std::cerr << "Using crop " << crop.toString() << std::endl;
-		controls_.set(controls::ScalerCrop, crop);
+		controls.set(controls::ScalerCrop, crop);
 	}
 
 	// Framerate is a bit weird. If it was set programmatically, we go with that, but
 	// otherwise it applies only to preview/video modes. For stills capture we set it
 	// as long as possible so that we get whatever the exposure profile wants.
-	if (!controls_.contains(controls::FrameDurationLimits))
+	if (!controls.contains(controls::FrameDurationLimits))
 	{
 		if (StillStream())
-			controls_.set(controls::FrameDurationLimits, { INT64_C(100), INT64_C(1000000000) });
+			controls.set(controls::FrameDurationLimits, { INT64_C(100), INT64_C(1000000000) });
 		else if (options_->framerate > 0)
 		{
 			int64_t frame_time = 1000000 / options_->framerate; // in us
-			controls_.set(controls::FrameDurationLimits, { frame_time, frame_time });
+			controls.set(controls::FrameDurationLimits, { frame_time, frame_time });
 		}
 	}
 
-	if (!controls_.contains(controls::ExposureTime) && options_->shutter)
-		controls_.set(controls::ExposureTime, options_->shutter);
-	if (!controls_.contains(controls::AnalogueGain) && options_->gain)
-		controls_.set(controls::AnalogueGain, options_->gain);
-	if (!controls_.contains(controls::AeMeteringMode))
-		controls_.set(controls::AeMeteringMode, options_->metering_index);
-	if (!controls_.contains(controls::AeExposureMode))
-		controls_.set(controls::AeExposureMode, options_->exposure_index);
-	if (!controls_.contains(controls::ExposureValue))
-		controls_.set(controls::ExposureValue, options_->ev);
-	if (!controls_.contains(controls::AwbMode))
-		controls_.set(controls::AwbMode, options_->awb_index);
-	if (!controls_.contains(controls::ColourGains) && options_->awb_gain_r && options_->awb_gain_b)
-		controls_.set(controls::ColourGains, { options_->awb_gain_r, options_->awb_gain_b });
-	if (!controls_.contains(controls::Brightness))
-		controls_.set(controls::Brightness, options_->brightness);
-	if (!controls_.contains(controls::Contrast))
-		controls_.set(controls::Contrast, options_->contrast);
-	if (!controls_.contains(controls::Saturation))
-		controls_.set(controls::Saturation, options_->saturation);
-	if (!controls_.contains(controls::Sharpness))
-		controls_.set(controls::Sharpness, options_->sharpness);
+	if (!controls.contains(controls::ExposureTime) && options_->shutter)
+		controls.set(controls::ExposureTime, options_->shutter);
+	if (!controls.contains(controls::AnalogueGain) && options_->gain)
+		controls.set(controls::AnalogueGain, options_->gain);
+	if (!controls.contains(controls::AeMeteringMode))
+		controls.set(controls::AeMeteringMode, options_->metering_index);
+	if (!controls.contains(controls::AeExposureMode))
+		controls.set(controls::AeExposureMode, options_->exposure_index);
+	if (!controls.contains(controls::ExposureValue))
+		controls.set(controls::ExposureValue, options_->ev);
+	if (!controls.contains(controls::AwbMode))
+		controls.set(controls::AwbMode, options_->awb_index);
+	if (!controls.contains(controls::ColourGains) && options_->awb_gain_r && options_->awb_gain_b)
+		controls.set(controls::ColourGains, { options_->awb_gain_r, options_->awb_gain_b });
+	if (!controls.contains(controls::Brightness))
+		controls.set(controls::Brightness, options_->brightness);
+	if (!controls.contains(controls::Contrast))
+		controls.set(controls::Contrast, options_->contrast);
+	if (!controls.contains(controls::Saturation))
+		controls.set(controls::Saturation, options_->saturation);
+	if (!controls.contains(controls::Sharpness))
+		controls.set(controls::Sharpness, options_->sharpness);
+
+	return controls;
+}
+
+void LibcameraApp::StartCamera()
+{
+	// This makes all the Request objects that we shall need.
+	makeRequests();
+
+	controls_.merge(GetControls());
 
 	if (camera_->start(&controls_))
 		throw std::runtime_error("failed to start camera");

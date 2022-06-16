@@ -119,6 +119,8 @@ public:
 	void ShowPreview(CompletedRequestPtr &completed_request, Stream *stream);
 
 	void SetControls(ControlList &controls);
+	ControlList GetControls();
+
 	StreamInfo GetStreamInfo(Stream const *stream) const;
 
 protected:

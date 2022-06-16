@@ -11,6 +11,7 @@
 #include <sys/signalfd.h>
 #include <sys/stat.h>
 #include <pigpio.h>
+#include <time.h>
 
 #include "core/frame_info.hpp"
 #include "core/libcamera_encoder.hpp"
@@ -21,6 +22,10 @@ using namespace std::placeholders;
 #define GPIO_TRIGGER_INDEX 20
 pthread_mutex_t lock;
 pthread_mutexattr_t attr;
+
+LibcameraEncoder app;
+int argc_ = 0;
+char ** argv_ = nullptr;
 
 void gpioMutexHandler(int gpio, int level, uint32_t tick)
 {
@@ -42,6 +47,21 @@ static void default_signal_handler(int signal_number)
 {
 	signal_received = signal_number;
 	std::cerr << "Received signal " << signal_number << std::endl;
+}
+
+// config reload signal
+static void reload_config_handler(int signal_number)
+{
+	std::cerr << "Received SIGHUP " << signal_number << std::endl;
+	VideoOptions *options = app.GetOptions();
+	if (options->Parse(argc_, argv_))
+	{
+		if (options->verbose)
+			options->Print();
+
+		libcamera::ControlList controls = app.GetControls();
+		app.SetControls(controls);
+	}
 }
 
 static int get_key_or_signal(VideoOptions const *options, pollfd p[1])
@@ -136,14 +156,19 @@ static void event_loop(LibcameraEncoder &app)
 	app.StartCamera();
 	auto start_time = std::chrono::high_resolution_clock::now();
 
-	// Monitoring for keypresses and signals.
-	signal(SIGUSR1, default_signal_handler);
-	signal(SIGUSR2, default_signal_handler);
 	pollfd p[1] = { { STDIN_FILENO, POLLIN, 0 } };
 
 	bool enabled = false;
 
 	gpioInitialise();
+
+	// Monitoring for keypresses and signals.
+	// do this after gpioInitialise because for some genious reason
+	// this library overrides signals during init
+	signal(SIGUSR1, default_signal_handler);
+	signal(SIGUSR2, default_signal_handler);
+	signal(SIGHUP, reload_config_handler);
+
 	gpioSetMode(GPIO_TRIGGER_INDEX, PI_INPUT);
 	gpioSetPullUpDown(GPIO_TRIGGER_INDEX, PI_PUD_UP);
 	gpioSetISRFunc(GPIO_TRIGGER_INDEX, RISING_EDGE, 0, gpioHandler);
@@ -199,8 +224,9 @@ int main(int argc, char *argv[])
 {
 	try
 	{
-		LibcameraEncoder app;
 		VideoOptions *options = app.GetOptions();
+		argc_ = argc;
+		argv_ = argv;
 		if (options->Parse(argc, argv))
 		{
 			if (options->verbose)
